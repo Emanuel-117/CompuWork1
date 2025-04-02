@@ -4,11 +4,11 @@
  */
 package Clases;
 
+import Clases.Departamento;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
-import java.util.Scanner;
 /**
  *
  * @author user
@@ -74,17 +74,8 @@ public class Empleado {
         this.contraseña = contraseña;
     }
 
-    @Override
-    public String toString() {
-        return "Empleado:\n" +
-               "ID: " + idEmpleado + "\n" +
-               "Nombre: " + nombre + "\n" +
-               "Tipo: " + tipo + "\n" +
-               "ID Departamento: " + idDepartamento + "\n" +
-               "Salario: " + salario + "\n" +
-               "Contraseña: " + contraseña;
-    }
-
+   
+    
     private static String generarContraseñaAleatoria() {
         Random random = new Random();
         StringBuilder contraseña = new StringBuilder();
@@ -95,28 +86,10 @@ public class Empleado {
         return contraseña.toString();
     }
 
-    public static void agregarEmpleado() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.print("ID del Empleado: ");
-            int id = scanner.nextInt();
-            scanner.nextLine();
-            System.out.print("Nombre del Empleado: ");
-            String nombre = scanner.nextLine();
-            System.out.print("Tipo de Empleado (Permanente/Temporal): ");
-            String tipo = scanner.nextLine();
-            System.out.print("Salario del Empleado: ");
-            double salario = scanner.nextDouble();
-            scanner.nextLine();
+    
 
-            System.out.println("Seleccione el Departamento:");
-            for (Departamento dept : Departamento.getListaDepartamentos()) {
-                System.out.println(dept.getIdDepartamento() + ". " + dept.getNombre());
-            }
-
-            System.out.print("ID del Departamento: ");
-            int idDepartamento = scanner.nextInt();
-            scanner.nextLine();
-
+    public static void agregarEmpleado(int id, String nombre, String tipo, double salario, int idDepartamento, String beneficios, String fechaFin) {
+        try {
             Departamento departamentoSeleccionado = null;
             for (Departamento dept : Departamento.getListaDepartamentos()) {
                 if (dept.getIdDepartamento() == idDepartamento) {
@@ -126,88 +99,82 @@ public class Empleado {
             }
 
             if (departamentoSeleccionado == null) {
-                System.out.println("Departamento no encontrado. Por favor, crea el departamento primero.");
-                return;
+                throw new Exception("Departamento no encontrado. Por favor, crea el departamento primero.");
             }
 
             String contraseña = generarContraseñaAleatoria();
             Empleado empleado;
 
             if (tipo.equalsIgnoreCase("Temporal")) {
-                System.out.print("Fecha de Fin (yyyy-MM-dd): ");
-                String fechaFinStr = scanner.nextLine();
-                try {
-                    Date fechaFin = new SimpleDateFormat("yyyy-MM-dd").parse(fechaFinStr);
-                    empleado = new EmpleadoTemporal(id, nombre, tipo, idDepartamento, salario, contraseña, fechaFin);
-                } catch (ParseException e) {
-                    System.out.println("Fecha inválida. No se pudo crear el empleado.");
-                    return;
+                if (fechaFin == null || fechaFin.isEmpty()) {
+                    throw new Exception("La fecha de fin es requerida para empleados temporales.");
                 }
+
+                Date fechaFinParsed = new SimpleDateFormat("yyyy-MM-dd").parse(fechaFin);
+                empleado = new EmpleadoTemporal(id, nombre, tipo, idDepartamento, salario, contraseña, fechaFinParsed);
             } else if (tipo.equalsIgnoreCase("Permanente")) {
-                System.out.print("Beneficios: ");
-                String beneficios = scanner.nextLine();
+                if (beneficios == null || beneficios.isEmpty()) {
+                    throw new Exception("Los beneficios son requeridos para empleados permanentes.");
+                }
+
                 empleado = new EmpleadoPermanente(id, nombre, tipo, idDepartamento, salario, contraseña, beneficios);
             } else {
-                System.out.println("Tipo de empleado no válido.");
-                return;
+                throw new Exception("Tipo de empleado no válido.");
             }
 
             departamentoSeleccionado.agregarEmpleado(empleado);
+
             System.out.println("Empleado agregado con éxito: " + empleado);
             System.out.println("Nota: La contraseña generada para este empleado es: " + contraseña);
+        } catch (ParseException e) {
+            System.out.println("Error al convertir la fecha: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error al agregar empleado: " + e.getMessage());
         }
     }
 
-    public static void eliminarEmpleado() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.print("ID del Empleado a eliminar: ");
-            int idEmpleado = scanner.nextInt();
-            scanner.nextLine();
+ 
 
-            for (Departamento dept : Departamento.getListaDepartamentos()) {
-                for (Empleado emp : dept.getEmpleados()) {
-                    if (emp.getIdEmpleado() == idEmpleado) {
-                        dept.eliminarEmpleado(emp);
-                        System.out.println("Empleado eliminado con éxito: " + emp);
-                        return;
-                    }
+  public static boolean eliminarEmpleado(int idEmpleado) {
+    try {
+        // Buscar el empleado dentro de los departamentos
+        for (Departamento dept : Departamento.getListaDepartamentos()) {
+            for (Empleado emp : dept.getEmpleados()) {
+                if (emp.getIdEmpleado() == idEmpleado) {
+                    // Eliminar el empleado del departamento
+                    dept.getEmpleados().remove(emp);
+                    System.out.println("Empleado eliminado con éxito: " + emp);
+                    return true; // Retornar éxito
                 }
             }
-            System.out.println("Empleado no encontrado.");
-        } catch (Exception e) {
-            System.out.println("Error al eliminar empleado: " + e.getMessage());
         }
+        System.out.println("Empleado no encontrado.");
+        return false; // Retornar fallo
+    } catch (Exception e) {
+        System.out.println("Error al eliminar empleado: " + e.getMessage());
+        return false; // Retornar fallo
     }
+}
+    public static boolean actualizarEmpleado(int idEmpleado, String nuevoNombre, String nuevoTipo, double nuevoSalario) {
+    try {     
+        for (Departamento dept : Departamento.getListaDepartamentos()) {
+            for (Empleado emp : dept.getEmpleados()) {
+                if (emp.getIdEmpleado() == idEmpleado) {
+                    
+                    emp.setNombre(nuevoNombre);
+                    emp.setTipo(nuevoTipo);
+                    emp.setSalario(nuevoSalario);
 
-    public static void actualizarEmpleado() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.print("ID del Empleado a actualizar: ");
-            int idEmpleado = scanner.nextInt();
-            scanner.nextLine();
-
-            for (Departamento dept : Departamento.getListaDepartamentos()) {
-                for (Empleado emp : dept.getEmpleados()) {
-                    if (emp.getIdEmpleado() == idEmpleado) {
-                        System.out.print("Nuevo nombre del Empleado: ");
-                        emp.setNombre(scanner.nextLine());
-
-                        System.out.print("Nuevo tipo de Empleado (Permanente/Temporal): ");
-                        emp.setTipo(scanner.nextLine());
-
-                        System.out.print("Nuevo salario del Empleado: ");
-                        emp.setSalario(scanner.nextDouble());
-                        scanner.nextLine();
-
-                        System.out.println("Empleado actualizado con éxito: " + emp);
-                        return;
-                    }
+                    System.out.println("Empleado actualizado con éxito: " + emp);
+                    return true;
                 }
             }
-            System.out.println("Empleado no encontrado.");
-        } catch (Exception e) {
-            System.out.println("Error al actualizar empleado: " + e.getMessage());
         }
-    }
+        System.out.println("Empleado no encontrado.");
+        return false; 
+    } catch (Exception e) {
+        System.out.println("Error al actualizar empleado: " + e.getMessage());
+        return false; 
+   }
+ }
 }
